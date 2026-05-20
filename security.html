@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NHPC Admin Dashboard</title>
+
+<style>
+
+body{
+font-family:Poppins,Arial;
+background:#061b3d;
+margin:0;
+padding:20px;
+color:white;
+}
+
+.login-box,
+.dashboard{
+
+max-width:1200px;
+margin:auto;
+background:white;
+color:#111;
+padding:25px;
+border-radius:22px;
+
+}
+
+.dashboard{
+display:none;
+}
+
+h1{
+margin-top:0;
+}
+
+input{
+padding:14px;
+border-radius:12px;
+border:1px solid #ccc;
+width:100%;
+margin-top:10px;
+margin-bottom:15px;
+font-size:15px;
+}
+
+button{
+padding:14px 20px;
+border:none;
+border-radius:12px;
+background:#0b4ea2;
+color:white;
+font-weight:700;
+cursor:pointer;
+margin-right:10px;
+}
+
+.stat{
+font-size:28px;
+font-weight:800;
+color:#d71920;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+font-size:14px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:10px;
+text-align:left;
+}
+
+th{
+background:#0b4ea2;
+color:white;
+}
+
+tr:nth-child(even){
+background:#f5f5f5;
+}
+
+.search-info{
+margin-top:8px;
+font-size:13px;
+opacity:0.7;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="login-box" id="loginBox">
+
+<h1>NHPC Secure Access</h1>
+
+<p>
+Authorized personnel only
+</p>
+
+<input
+type="password"
+id="password"
+placeholder="Enter Access Password"
+/>
+
+<button onclick="login()">
+Access Dashboard
+</button>
+
+</div>
+
+<div class="dashboard" id="dashboard">
+
+<h1>NHPC E-Card Dashboard</h1>
+
+<p>
+Total Cards Generated:
+<span class="stat" id="total">0</span>
+</p>
+
+<input
+id="search"
+placeholder="Search Name / Phone / ID / Date"
+onkeyup="renderTable()"
+/>
+
+<div class="search-info">
+You can search using:
+<br>
+• Name
+<br>
+• Phone Number
+<br>
+• Unique ID
+<br>
+• Date like:
+21/05/2026
+</div>
+
+<br>
+
+<button onclick="exportCSV()">
+Export CSV
+</button>
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Unique ID</th>
+<th>Date</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+
+import {
+getFirestore,
+collection,
+getDocs,
+query,
+orderBy
+}
+from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyC7UruxxTWwBtY_gQzw5bZajSA5dh8Eh7U",
+
+authDomain: "mmi-life-savers-checkin.firebaseapp.com",
+
+projectId: "mmi-life-savers-checkin",
+
+storageBucket: "mmi-life-savers-checkin.firebasestorage.app",
+
+messagingSenderId: "250748184071",
+
+appId: "1:250748184071:web:d9b927ca631c4591626ca2"
+
+};
+
+const app =
+initializeApp(firebaseConfig);
+
+const db =
+getFirestore(app);
+
+let rows = [];
+
+window.login = function(){
+
+const pass =
+document.getElementById("password").value;
+
+if(pass === "SiyaRaam"){
+
+document.getElementById("loginBox").style.display =
+"none";
+
+document.getElementById("dashboard").style.display =
+"block";
+
+loadData();
+
+}else{
+
+alert("Incorrect Password");
+
+}
+
+}
+
+async function loadData(){
+
+const q =
+query(
+collection(db, "nhpcUsers"),
+orderBy("createdAt", "desc")
+);
+
+const snap =
+await getDocs(q);
+
+rows = [];
+
+snap.forEach(doc => {
+
+rows.push(doc.data());
+
+});
+
+document.getElementById("total").innerText =
+rows.length;
+
+renderTable();
+
+}
+
+window.renderTable = function(){
+
+const search =
+document.getElementById("search")
+.value
+.toLowerCase();
+
+const body =
+document.getElementById("tableBody");
+
+const filtered =
+rows.filter(r => {
+
+const date =
+r.createdAt?.toDate
+? r.createdAt.toDate().toLocaleDateString()
+: "";
+
+return (
+
+String(r.name || "")
+.toLowerCase()
+.includes(search)
+
+||
+
+String(r.phone || "")
+.toLowerCase()
+.includes(search)
+
+||
+
+String(r.uniqueId || "")
+.toLowerCase()
+.includes(search)
+
+||
+
+date.toLowerCase().includes(search)
+
+);
+
+});
+
+body.innerHTML =
+filtered.map(r => {
+
+const date =
+r.createdAt?.toDate
+? r.createdAt.toDate().toLocaleString()
+: "";
+
+return `
+
+<tr>
+
+<td>${r.name || ""}</td>
+
+<td>${r.phone || ""}</td>
+
+<td>${r.uniqueId || ""}</td>
+
+<td>${date}</td>
+
+</tr>
+
+`;
+
+}).join("");
+
+}
+
+window.exportCSV = function(){
+
+let csv =
+"Name,Phone,Unique ID,Date\n";
+
+rows.forEach(r => {
+
+const date =
+r.createdAt?.toDate
+? r.createdAt.toDate().toLocaleString()
+: "";
+
+csv +=
+`"${r.name || ""}","${r.phone || ""}","${r.uniqueId || ""}","${date}"\n`;
+
+});
+
+const blob =
+new Blob([csv], {type:"text/csv"});
+
+const url =
+URL.createObjectURL(blob);
+
+const a =
+document.createElement("a");
+
+a.href = url;
+
+a.download =
+"nhpc-ecard-data.csv";
+
+a.click();
+
+}
+
+</script>
+
+</body>
+</html>
