@@ -1,460 +1,492 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <title>MMI Family Privilege Card</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-
 *{
-margin:0;
-padding:0;
-box-sizing:border-box;
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
 }
 
 body{
-
-font-family:'Poppins',sans-serif;
-
-background:
-linear-gradient(rgba(3,15,60,0.88),rgba(3,15,60,0.9)),
-url('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1200');
-
-background-size:cover;
-background-position:center;
-
-min-height:100vh;
-
-display:flex;
-justify-content:center;
-align-items:center;
-
-padding:20px;
-
-overflow-x:hidden;
-
+  font-family:'Poppins',sans-serif;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(0,153,255,0.35), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(215,25,32,0.25), transparent 28%),
+    linear-gradient(135deg,#020b24,#062b70 50%,#020b24);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:22px;
+  overflow-x:hidden;
+  color:white;
 }
 
 .container{
-
-width:100%;
-max-width:520px;
-
-background:rgba(255,255,255,0.08);
-
-border:1px solid rgba(255,255,255,0.18);
-
-backdrop-filter:blur(18px);
-
-border-radius:34px;
-
-padding:35px 28px;
-
-box-shadow:
-0 10px 50px rgba(0,0,0,0.35),
-0 0 30px rgba(11,78,162,0.35);
-
-position:relative;
-
-overflow:hidden;
-
+  width:100%;
+  max-width:560px;
+  background:rgba(255,255,255,0.09);
+  border:1px solid rgba(255,255,255,0.22);
+  backdrop-filter:blur(20px);
+  border-radius:36px;
+  padding:34px 28px;
+  box-shadow:
+    0 20px 70px rgba(0,0,0,0.45),
+    0 0 45px rgba(0,153,255,0.25);
+  position:relative;
+  overflow:hidden;
 }
 
 .container::before{
+  content:'';
+  position:absolute;
+  width:250px;
+  height:250px;
+  top:-120px;
+  right:-100px;
+  background:rgba(0,153,255,0.25);
+  border-radius:50%;
+  filter:blur(35px);
+}
 
-content:'';
+.container::after{
+  content:'';
+  position:absolute;
+  width:220px;
+  height:220px;
+  bottom:-120px;
+  left:-100px;
+  background:rgba(215,25,32,0.22);
+  border-radius:50%;
+  filter:blur(35px);
+}
 
-position:absolute;
-
-width:220px;
-height:220px;
-
-background:rgba(0,153,255,0.18);
-
-border-radius:50%;
-
-top:-100px;
-right:-80px;
-
-filter:blur(30px);
-
+.content{
+  position:relative;
+  z-index:2;
 }
 
 .logo{
-
-width:220px;
-
-display:block;
-
-margin:auto;
-margin-bottom:22px;
-
+  width:210px;
+  display:block;
+  margin:0 auto 24px;
 }
 
 .title{
-
-font-size:54px;
-
-font-weight:800;
-
-line-height:1.05;
-
-text-align:center;
-
-color:white;
-
-margin-bottom:14px;
-
+  font-size:46px;
+  font-weight:900;
+  line-height:1.05;
+  text-align:center;
+  margin-bottom:14px;
 }
 
 .title span{
-
-color:#79c7ff;
-
+  color:#72d4ff;
 }
 
 .subtitle{
-
-text-align:center;
-
-font-size:18px;
-
-line-height:1.6;
-
-color:#e6eeff;
-
-margin-bottom:35px;
-
+  text-align:center;
+  font-size:18px;
+  color:#e8f1ff;
+  margin-bottom:30px;
+  line-height:1.5;
 }
 
 .input-box{
-
-margin-bottom:22px;
-
+  margin-bottom:18px;
 }
 
 input{
+  width:100%;
+  padding:19px 20px;
+  border:none;
+  outline:none;
+  border-radius:20px;
+  font-size:17px;
+  font-weight:600;
+  background:white;
+  color:#111827;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,0.4),
+    0 8px 24px rgba(0,0,0,0.18);
+}
 
-width:100%;
-
-padding:20px;
-
-border:none;
-
-border-radius:18px;
-
-font-size:17px;
-
-outline:none;
-
-background:white;
-
-box-shadow:
-0 5px 18px rgba(0,0,0,0.15);
-
+.generate-btn,
+.download-btn{
+  width:100%;
+  padding:18px;
+  border:none;
+  border-radius:20px;
+  color:white;
+  font-size:20px;
+  font-weight:800;
+  cursor:pointer;
+  transition:0.25s;
 }
 
 .generate-btn{
-
-width:100%;
-
-padding:18px;
-
-border:none;
-
-border-radius:18px;
-
-background:
-linear-gradient(135deg,#ff003c,#d71920);
-
-color:white;
-
-font-size:22px;
-
-font-weight:700;
-
-cursor:pointer;
-
-transition:0.3s;
-
-box-shadow:
-0 8px 22px rgba(215,25,32,0.45);
-
-}
-
-.generate-btn:hover{
-
-transform:scale(1.02);
-
-}
-
-.ecard-section{
-
-display:none;
-
-margin-top:35px;
-
-animation:fadeIn 1s ease;
-
-}
-
-@keyframes fadeIn{
-
-from{
-opacity:0;
-transform:translateY(20px);
-}
-
-to{
-opacity:1;
-transform:translateY(0);
-}
-
-}
-
-.card-wrapper{
-
-position:relative;
-
-width:100%;
-
-}
-
-.card-wrapper img{
-
-width:100%;
-
-border-radius:22px;
-
-display:block;
-
-}
-
-.unique-id{
-position:absolute;
-top:18px;
-right:14px;
-color:white;
-font-size:10px !important;
-font-weight:800;
-text-align:right;
-white-space:nowrap;
-line-height:1;
-text-shadow:0 2px 5px rgba(0,0,0,0.75);
-letter-spacing:0.4px;
-}
-
-.message{
-
-margin-top:28px;
-
-text-align:center;
-
-line-height:1.8;
-
-}
-
-.message h2{
-
-font-size:34px;
-
-margin-bottom:12px;
-
-}
-
-.message p{
-
-font-size:16px;
-
-color:#e8f1ff;
-
+  background:linear-gradient(135deg,#ff003c,#d71920);
+  box-shadow:0 10px 28px rgba(215,25,32,0.45);
 }
 
 .download-btn{
+  margin-top:24px;
+  background:linear-gradient(135deg,#0b4ea2,#00a8ff);
+  box-shadow:0 10px 28px rgba(0,153,255,0.38);
+}
 
-margin-top:25px;
+.generate-btn:hover,
+.download-btn:hover{
+  transform:scale(1.02);
+}
 
-width:100%;
+.generate-btn:disabled{
+  opacity:0.65;
+  cursor:not-allowed;
+}
 
-padding:18px;
+.ecard-section{
+  display:none;
+  margin-top:34px;
+  animation:fadeIn 0.8s ease;
+}
 
-border:none;
+@keyframes fadeIn{
+  from{
+    opacity:0;
+    transform:translateY(20px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
 
-border-radius:18px;
+.card-wrapper{
+  position:relative;
+  width:100%;
+  margin-bottom:18px;
+}
 
-background:
-linear-gradient(135deg,#0b4ea2,#0099ff);
+.card-wrapper img{
+  width:100%;
+  border-radius:22px;
+  display:block;
+  box-shadow:0 14px 38px rgba(0,0,0,0.45);
+}
 
-color:white;
+.unique-id{
+  position:absolute;
+  top:17px;
+  right:14px;
+  color:white;
+  font-size:10px;
+  font-weight:900;
+  text-align:right;
+  white-space:nowrap;
+  line-height:1;
+  text-shadow:0 2px 5px rgba(0,0,0,0.85);
+  letter-spacing:0.4px;
+}
 
-font-size:20px;
+.message{
+  margin-top:24px;
+  text-align:center;
+  line-height:1.7;
+}
 
-font-weight:700;
+.message h2{
+  font-size:34px;
+  margin-bottom:10px;
+  color:white;
+}
 
-cursor:pointer;
-
-box-shadow:
-0 8px 20px rgba(0,153,255,0.35);
-
+.message p{
+  font-size:16px;
+  color:#e8f1ff;
 }
 
 .footer{
-
-margin-top:25px;
-
-font-size:12px;
-
-text-align:center;
-
-opacity:0.6;
-
+  margin-top:24px;
+  font-size:12px;
+  text-align:center;
+  opacity:0.65;
 }
 
-</style>
+@media(max-width:520px){
+  .title{
+    font-size:38px;
+  }
 
+  .logo{
+    width:180px;
+  }
+
+  .container{
+    padding:30px 22px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
+  <div class="content">
 
-<img src="logo.png" class="logo">
+    <img src="logo.png" class="logo" alt="Narayana Health Logo">
 
-<h1 class="title">
-Avail your <span>FREE</span> E-card
-</h1>
+    <h1 class="title">
+      Avail your <span>FREE</span> E-card
+    </h1>
 
-<p class="subtitle">
-Welcome to the MMI Narayana Health Family
-</p>
+    <p class="subtitle">
+      Welcome to the MMI Narayana Health Family
+    </p>
 
-<div class="input-box">
-<input type="text" id="name" placeholder="Enter Full Name">
+    <div class="input-box">
+      <input type="text" id="name" placeholder="Enter Full Name">
+    </div>
+
+    <div class="input-box">
+      <input type="tel" id="phone" placeholder="Enter 10-digit WhatsApp Number" maxlength="10">
+    </div>
+
+    <button class="generate-btn" id="generateBtn" onclick="generateCard()">
+      Generate E-Card
+    </button>
+
+    <div class="ecard-section" id="ecardSection">
+
+      <div class="card-wrapper" id="frontPreview">
+        <img src="card-front.png" alt="Family Privilege Card Front">
+        <div class="unique-id" id="uniqueId">NHPC-RPR-000001</div>
+      </div>
+
+      <div class="card-wrapper">
+        <img src="card-back.png" alt="Family Privilege Card Back">
+      </div>
+
+      <div class="message">
+        <h2>🎉 Congratulations!</h2>
+        <p>Welcome to the MMI Narayana Health Family.</p>
+        <p>This card covers your entire family when carried during hospital visits.</p>
+      </div>
+
+      <button class="download-btn" onclick="downloadCard()">
+        Download your Family Privilege Card
+      </button>
+
+    </div>
+
+    <div class="footer">
+      MMI Narayana Health
+    </div>
+
+  </div>
 </div>
 
-<div class="input-box">
-<input type="tel" id="phone" placeholder="Enter WhatsApp Number">
-</div>
+<script type="module">
 
-<button class="generate-btn" onclick="generateCard()">
-Generate E-Card
-</button>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 
-<div class="ecard-section" id="ecardSection">
+import {
+  getFirestore,
+  doc,
+  runTransaction,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-<div class="card-wrapper" id="cardArea">
+const firebaseConfig = {
+  apiKey: "AIzaSyC7UruxxTWwBtY_gQzw5bZajSA5dh8Eh7U",
+  authDomain: "mmi-life-savers-checkin.firebaseapp.com",
+  projectId: "mmi-life-savers-checkin",
+  storageBucket: "mmi-life-savers-checkin.firebasestorage.app",
+  messagingSenderId: "250748184071",
+  appId: "1:250748184071:web:d9b927ca631c4591626ca2"
+};
 
-<img src="card-front.png">
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-<div class="unique-id" id="uniqueId">
-NHPC-RPR-000001
-</div>
+let currentCardId = "";
 
-</div>
-
-<div class="message">
-
-<h2>
-🎉 Congratulations!
-</h2>
-
-<p>
-Welcome to the MMI Narayana Health Family.
-</p>
-
-<p>
-This card covers your entire family during hospital visits.
-</p>
-
-</div>
-
-<button class="download-btn" onclick="downloadCard()">
-Download your Family Privilege Card
-</button>
-
-</div>
-
-<div class="footer">
-MMI Narayana Health
-</div>
-
-</div>
-
-<script>
-
-function generateUniqueId(){
-
-const random =
-Math.floor(100000 + Math.random()*900000);
-
-return "NHPC-RPR-" + random;
-
+function cleanPhone(phone){
+  return phone.replace(/\D/g,'');
 }
 
-function generateCard(){
+async function getOrCreateCard(name, phone){
 
-const name =
-document.getElementById('name').value.trim();
+  const userRef = doc(db, "nhpcUsers", phone);
+  const counterRef = doc(db, "nhpcCounters", "main");
 
-const phone =
-document.getElementById('phone').value.trim();
+  return await runTransaction(db, async (transaction) => {
 
-if(name === '' || phone === ''){
+    const userSnap = await transaction.get(userRef);
 
-alert('Please fill all fields');
+    if(userSnap.exists()){
+      return userSnap.data().uniqueId;
+    }
 
-return;
+    const counterSnap = await transaction.get(counterRef);
 
+    let nextNumber = 1;
+
+    if(counterSnap.exists()){
+      nextNumber = Number(counterSnap.data().nextNumber || 1);
+    }
+
+    const uniqueId = "NHPC-RPR-" + String(nextNumber).padStart(6, "0");
+
+    transaction.set(userRef, {
+      name: name,
+      phone: phone,
+      uniqueId: uniqueId,
+      createdAt: serverTimestamp()
+    });
+
+    transaction.set(counterRef, {
+      nextNumber: nextNumber + 1,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    return uniqueId;
+  });
 }
 
-const uniqueId =
-generateUniqueId();
+window.generateCard = async function(){
 
-document.getElementById('uniqueId').innerText =
-uniqueId;
+  const name = document.getElementById('name').value.trim();
+  const phone = cleanPhone(document.getElementById('phone').value.trim());
+  const btn = document.getElementById('generateBtn');
 
-document.getElementById('ecardSection').style.display =
-'block';
+  if(name === '' || phone === ''){
+    alert('Please fill all fields');
+    return;
+  }
 
-confetti({
-particleCount:250,
-spread:120,
-origin:{y:0.6}
-});
+  if(!/^[0-9]{10}$/.test(phone)){
+    alert('Enter valid 10-digit WhatsApp number');
+    return;
+  }
 
+  try{
+
+    btn.disabled = true;
+    btn.innerText = "Generating...";
+
+    const uniqueId = await getOrCreateCard(name, phone);
+
+    currentCardId = uniqueId;
+
+    document.getElementById('uniqueId').innerText = uniqueId;
+    document.getElementById('ecardSection').style.display = 'block';
+
+    confetti({
+      particleCount:280,
+      spread:130,
+      origin:{y:0.58}
+    });
+
+    setTimeout(() => {
+      document.getElementById('ecardSection').scrollIntoView({
+        behavior:'smooth',
+        block:'start'
+      });
+    }, 300);
+
+  }catch(error){
+
+    console.error(error);
+    alert("Something went wrong. Please try again.");
+
+  }finally{
+
+    btn.disabled = false;
+    btn.innerText = "Generate E-Card";
+
+  }
 }
 
-function downloadCard(){
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 
-html2canvas(document.querySelector("#cardArea"))
-.then(canvas=>{
+window.downloadCard = async function(){
 
-const link =
-document.createElement('a');
+  if(!currentCardId){
+    alert("Please generate your card first.");
+    return;
+  }
 
-link.download =
-'MMI-Family-Privilege-Card.png';
+  try{
 
-link.href =
-canvas.toDataURL();
+    const frontImg = await loadImage("card-front.png");
+    const backImg = await loadImage("card-back.png");
 
-link.click();
+    const width = frontImg.naturalWidth;
+    const frontHeight = frontImg.naturalHeight;
+    const backHeight = backImg.naturalHeight;
 
-});
+    const gap = Math.round(width * 0.035);
 
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = frontHeight + gap + backHeight;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.drawImage(frontImg,0,0,width,frontHeight);
+
+    ctx.font = `900 ${Math.round(width * 0.027)}px Poppins`;
+    ctx.fillStyle = "white";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = Math.round(width * 0.006);
+
+    ctx.fillText(
+      currentCardId,
+      width - Math.round(width * 0.045),
+      Math.round(frontHeight * 0.055)
+    );
+
+    ctx.shadowBlur = 0;
+
+    ctx.drawImage(backImg,0,frontHeight + gap,width,backHeight);
+
+    const link = document.createElement("a");
+    link.download = currentCardId + "-MMI-Family-Privilege-Card.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+
+  }catch(error){
+
+    console.error(error);
+    alert("Download failed. Please try again.");
+
+  }
 }
 
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
 </html>
