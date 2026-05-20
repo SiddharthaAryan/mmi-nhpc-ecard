@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>MMI Family Privilege Card</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+
+font-family:'Poppins',sans-serif;
+
+background:
+linear-gradient(rgba(3,15,60,0.88),rgba(3,15,60,0.9)),
+url('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1200');
+
+background-size:cover;
+background-position:center;
+
+min-height:100vh;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+padding:20px;
+
+overflow-x:hidden;
+
+}
+
+.container{
+
+width:100%;
+max-width:520px;
+
+background:rgba(255,255,255,0.08);
+
+border:1px solid rgba(255,255,255,0.18);
+
+backdrop-filter:blur(18px);
+
+border-radius:34px;
+
+padding:35px 28px;
+
+box-shadow:
+0 10px 50px rgba(0,0,0,0.35),
+0 0 30px rgba(11,78,162,0.35);
+
+position:relative;
+
+overflow:hidden;
+
+}
+
+.container::before{
+
+content:'';
+
+position:absolute;
+
+width:220px;
+height:220px;
+
+background:rgba(0,153,255,0.18);
+
+border-radius:50%;
+
+top:-100px;
+right:-80px;
+
+filter:blur(30px);
+
+}
+
+.logo{
+
+width:220px;
+
+display:block;
+
+margin:auto;
+margin-bottom:22px;
+
+}
+
+.title{
+
+font-size:54px;
+
+font-weight:800;
+
+line-height:1.05;
+
+text-align:center;
+
+color:white;
+
+margin-bottom:14px;
+
+}
+
+.title span{
+
+color:#79c7ff;
+
+}
+
+.subtitle{
+
+text-align:center;
+
+font-size:18px;
+
+line-height:1.6;
+
+color:#e6eeff;
+
+margin-bottom:35px;
+
+}
+
+.input-box{
+
+margin-bottom:22px;
+
+}
+
+input{
+
+width:100%;
+
+padding:20px;
+
+border:none;
+
+border-radius:18px;
+
+font-size:17px;
+
+outline:none;
+
+background:white;
+
+box-shadow:
+0 5px 18px rgba(0,0,0,0.15);
+
+}
+
+.generate-btn{
+
+width:100%;
+
+padding:18px;
+
+border:none;
+
+border-radius:18px;
+
+background:
+linear-gradient(135deg,#ff003c,#d71920);
+
+color:white;
+
+font-size:22px;
+
+font-weight:700;
+
+cursor:pointer;
+
+transition:0.3s;
+
+box-shadow:
+0 8px 22px rgba(215,25,32,0.45);
+
+}
+
+.generate-btn:hover{
+
+transform:scale(1.02);
+
+}
+
+.ecard-section{
+
+display:none;
+
+margin-top:35px;
+
+animation:fadeIn 1s ease;
+
+}
+
+@keyframes fadeIn{
+
+from{
+opacity:0;
+transform:translateY(20px);
+}
+
+to{
+opacity:1;
+transform:translateY(0);
+}
+
+}
+
+.card-wrapper{
+
+position:relative;
+
+width:100%;
+
+}
+
+.card-wrapper img{
+
+width:100%;
+
+border-radius:22px;
+
+display:block;
+
+}
+
+.unique-id{
+
+position:absolute;
+
+top:22px;
+
+right:22px;
+
+color:white;
+
+font-size:20px;
+
+font-weight:800;
+
+text-shadow:
+0 3px 8px rgba(0,0,0,0.65);
+
+letter-spacing:1px;
+
+}
+
+.message{
+
+margin-top:28px;
+
+text-align:center;
+
+line-height:1.8;
+
+}
+
+.message h2{
+
+font-size:34px;
+
+margin-bottom:12px;
+
+}
+
+.message p{
+
+font-size:16px;
+
+color:#e8f1ff;
+
+}
+
+.download-btn{
+
+margin-top:25px;
+
+width:100%;
+
+padding:18px;
+
+border:none;
+
+border-radius:18px;
+
+background:
+linear-gradient(135deg,#0b4ea2,#0099ff);
+
+color:white;
+
+font-size:20px;
+
+font-weight:700;
+
+cursor:pointer;
+
+box-shadow:
+0 8px 20px rgba(0,153,255,0.35);
+
+}
+
+.footer{
+
+margin-top:25px;
+
+font-size:12px;
+
+text-align:center;
+
+opacity:0.6;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<img src="logo.png" class="logo">
+
+<h1 class="title">
+Avail your <span>FREE</span> E-card
+</h1>
+
+<p class="subtitle">
+Welcome to the MMI Narayana Health Family
+</p>
+
+<div class="input-box">
+<input type="text" id="name" placeholder="Enter Full Name">
+</div>
+
+<div class="input-box">
+<input type="tel" id="phone" placeholder="Enter WhatsApp Number">
+</div>
+
+<button class="generate-btn" onclick="generateCard()">
+Generate E-Card
+</button>
+
+<div class="ecard-section" id="ecardSection">
+
+<div class="card-wrapper" id="cardArea">
+
+<img src="card-front.png">
+
+<div class="unique-id" id="uniqueId">
+NHPC-RPR-000001
+</div>
+
+</div>
+
+<div class="message">
+
+<h2>
+🎉 Congratulations!
+</h2>
+
+<p>
+Welcome to the MMI Narayana Health Family.
+</p>
+
+<p>
+This card covers your entire family during hospital visits.
+</p>
+
+</div>
+
+<button class="download-btn" onclick="downloadCard()">
+Download your Family Privilege Card
+</button>
+
+</div>
+
+<div class="footer">
+MMI Narayana Health
+</div>
+
+</div>
+
+<script>
+
+function generateUniqueId(){
+
+const random =
+Math.floor(100000 + Math.random()*900000);
+
+return "NHPC-RPR-" + random;
+
+}
+
+function generateCard(){
+
+const name =
+document.getElementById('name').value.trim();
+
+const phone =
+document.getElementById('phone').value.trim();
+
+if(name === '' || phone === ''){
+
+alert('Please fill all fields');
+
+return;
+
+}
+
+const uniqueId =
+generateUniqueId();
+
+document.getElementById('uniqueId').innerText =
+uniqueId;
+
+document.getElementById('ecardSection').style.display =
+'block';
+
+confetti({
+particleCount:250,
+spread:120,
+origin:{y:0.6}
+});
+
+}
+
+function downloadCard(){
+
+html2canvas(document.querySelector("#cardArea"))
+.then(canvas=>{
+
+const link =
+document.createElement('a');
+
+link.download =
+'MMI-Family-Privilege-Card.png';
+
+link.href =
+canvas.toDataURL();
+
+link.click();
+
+});
+
+}
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+</body>
+</html>
