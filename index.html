@@ -423,7 +423,7 @@ function loadImage(src){
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = src;
+    img.src = src + "?v=" + Date.now();
   });
 }
 
@@ -443,7 +443,7 @@ window.downloadCard = async function(){
     const frontHeight = frontImg.naturalHeight;
     const backHeight = backImg.naturalHeight;
 
-    const gap = Math.round(width * 0.035);
+    const gap = 0;
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -451,7 +451,12 @@ window.downloadCard = async function(){
 
     const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#ffffff";
+    const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+    gradient.addColorStop(0,"#02163f");
+    gradient.addColorStop(0.5,"#02163f");
+    gradient.addColorStop(1,"#031b55");
+
+    ctx.fillStyle = gradient;
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     ctx.drawImage(frontImg,0,0,width,frontHeight);
