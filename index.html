@@ -149,7 +149,8 @@ input{
   transform:scale(1.02);
 }
 
-.generate-btn:disabled{
+.generate-btn:disabled,
+.download-btn:disabled{
   opacity:0.65;
   cursor:not-allowed;
 }
@@ -179,6 +180,8 @@ input{
 
 .card-wrapper img{
   width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
   border-radius:22px;
   display:block;
   box-shadow:0 14px 38px rgba(0,0,0,0.45);
@@ -272,7 +275,7 @@ input{
         <div class="unique-id" id="uniqueId">NHPC-RPR-000001</div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="backPreview">
         <img src="card-back.png" alt="Family Privilege Card Back">
       </div>
 
@@ -282,7 +285,7 @@ input{
         <p>This card covers your entire family when carried during hospital visits.</p>
       </div>
 
-      <button class="download-btn" onclick="downloadCard()">
+      <button class="download-btn" id="downloadBtn" onclick="downloadCard()">
         Download your Family Privilege Card
       </button>
 
@@ -392,8 +395,8 @@ window.generateCard = async function(){
     document.getElementById('ecardSection').style.display = 'block';
 
     confetti({
-      particleCount:280,
-      spread:130,
+      particleCount:220,
+      spread:120,
       origin:{y:0.58}
     });
 
@@ -402,7 +405,7 @@ window.generateCard = async function(){
         behavior:'smooth',
         block:'start'
       });
-    }, 300);
+    }, 250);
 
   }catch(error){
 
@@ -417,16 +420,6 @@ window.generateCard = async function(){
   }
 }
 
-function loadImage(src){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src + "?v=" + Date.now();
-  });
-}
-
 window.downloadCard = async function(){
 
   if(!currentCardId){
@@ -434,59 +427,62 @@ window.downloadCard = async function(){
     return;
   }
 
+  const downloadBtn = document.getElementById("downloadBtn");
+
   try{
 
-    const frontImg = await loadImage("card-front.png");
-    const backImg = await loadImage("card-back.png");
+    downloadBtn.disabled = true;
+    downloadBtn.innerText = "Preparing download...";
 
-    const width = frontImg.naturalWidth;
-    const frontHeight = frontImg.naturalHeight;
-    const backHeight = backImg.naturalHeight;
-
-    const gap = 0;
+    const frontImg = document.querySelector('#frontPreview img');
+    const backImg = document.querySelector('#backPreview img');
 
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = frontHeight + gap + backHeight;
-
     const ctx = canvas.getContext("2d");
 
-    const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
-    gradient.addColorStop(0,"#02163f");
-    gradient.addColorStop(0.5,"#02163f");
-    gradient.addColorStop(1,"#031b55");
+    const cardWidth = 1200;
+    const cardHeight = 675;
+    const gap = 0;
 
-    ctx.fillStyle = gradient;
+    canvas.width = cardWidth;
+    canvas.height = (cardHeight * 2) + gap;
+
+    ctx.fillStyle = "#031B55";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    ctx.drawImage(frontImg,0,0,width,frontHeight);
+    ctx.drawImage(frontImg, 0, 0, cardWidth, cardHeight);
 
-    ctx.font = `900 ${Math.round(width * 0.027)}px Poppins`;
+    ctx.font = "900 34px Poppins";
     ctx.fillStyle = "white";
     ctx.textAlign = "right";
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(0,0,0,0.8)";
-    ctx.shadowBlur = Math.round(width * 0.006);
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
+    ctx.shadowBlur = 8;
 
     ctx.fillText(
       currentCardId,
-      width - Math.round(width * 0.045),
-      Math.round(frontHeight * 0.055)
+      cardWidth - 55,
+      42
     );
 
     ctx.shadowBlur = 0;
 
-    ctx.drawImage(backImg,0,frontHeight + gap,width,backHeight);
+    ctx.drawImage(backImg, 0, cardHeight + gap, cardWidth, cardHeight);
 
     const link = document.createElement("a");
-    link.download = currentCardId + "-MMI-Family-Privilege-Card.png";
-    link.href = canvas.toDataURL("image/png");
+    link.download = currentCardId + "-MMI-Family-Privilege-Card.jpg";
+    link.href = canvas.toDataURL("image/jpeg", 0.9);
     link.click();
 
   }catch(error){
 
     console.error(error);
     alert("Download failed. Please try again.");
+
+  }finally{
+
+    downloadBtn.disabled = false;
+    downloadBtn.innerText = "Download your Family Privilege Card";
 
   }
 }
