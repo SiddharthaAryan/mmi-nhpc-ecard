@@ -8,6 +8,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <style>
 *{
@@ -201,6 +202,19 @@ input{
   letter-spacing:0.4px;
 }
 
+.qr-code{
+  position:absolute;
+  top:42px;
+  right:15px;
+  width:72px;
+  height:72px;
+  background:white;
+  padding:4px;
+  border-radius:4px;
+  display:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.35);
+}
+
 .message{
   margin-top:24px;
   text-align:center;
@@ -236,6 +250,14 @@ input{
 
   .container{
     padding:30px 22px;
+  }
+
+  .qr-code{
+    width:62px;
+    height:62px;
+    top:39px;
+    right:14px;
+    padding:3px;
   }
 }
 </style>
@@ -273,6 +295,7 @@ input{
       <div class="card-wrapper" id="frontPreview">
         <img src="card-front.png" alt="Family Privilege Card Front">
         <div class="unique-id" id="uniqueId">NHPC-RPR-000001</div>
+        <canvas class="qr-code" id="qrPreview"></canvas>
       </div>
 
       <div class="card-wrapper" id="backPreview">
@@ -322,9 +345,49 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let currentCardId = "";
+let currentQRCanvas = null;
 
 function cleanPhone(phone){
   return phone.replace(/\D/g,'');
+}
+
+function getVerifyUrl(cardId){
+  const basePath = window.location.pathname.replace("index.html", "");
+  return window.location.origin + basePath + "verify.html?id=" + encodeURIComponent(cardId);
+}
+
+function makeQRCode(canvas, text, size){
+  return new Promise((resolve, reject) => {
+    QRCode.toCanvas(
+      canvas,
+      text,
+      {
+        width:size,
+        margin:1,
+        color:{
+          dark:"#000000",
+          light:"#ffffff"
+        },
+        errorCorrectionLevel:"M"
+      },
+      function(error){
+        if(error) reject(error);
+        else resolve(canvas);
+      }
+    );
+  });
+}
+
+async function generateQR(cardId){
+
+  const qrCanvas = document.getElementById("qrPreview");
+  const verifyUrl = getVerifyUrl(cardId);
+
+  await makeQRCode(qrCanvas, verifyUrl, 220);
+
+  qrCanvas.style.display = "block";
+  currentQRCanvas = qrCanvas;
+
 }
 
 async function getOrCreateCard(name, phone){
@@ -392,6 +455,9 @@ window.generateCard = async function(){
     currentCardId = uniqueId;
 
     document.getElementById('uniqueId').innerText = uniqueId;
+
+    await generateQR(uniqueId);
+
     document.getElementById('ecardSection').style.display = 'block';
 
     confetti({
@@ -466,6 +532,26 @@ window.downloadCard = async function(){
     );
 
     ctx.shadowBlur = 0;
+
+    const qrDownloadCanvas = document.createElement("canvas");
+    const verifyUrl = getVerifyUrl(currentCardId);
+
+    await makeQRCode(qrDownloadCanvas, verifyUrl, 220);
+
+    const qrSize = 150;
+    const qrX = cardWidth - 55 - qrSize;
+    const qrY = 92;
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
+
+    ctx.drawImage(
+      qrDownloadCanvas,
+      qrX,
+      qrY,
+      qrSize,
+      qrSize
+    );
 
     ctx.drawImage(backImg, 0, cardHeight + gap, cardWidth, cardHeight);
 
