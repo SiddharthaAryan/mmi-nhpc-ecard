@@ -8,7 +8,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
 <style>
 *{
@@ -345,7 +345,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let currentCardId = "";
-let currentQRCanvas = null;
 
 function cleanPhone(phone){
   return phone.replace(/\D/g,'');
@@ -356,26 +355,20 @@ function getVerifyUrl(cardId){
   return window.location.origin + basePath + "verify.html?id=" + encodeURIComponent(cardId);
 }
 
-function makeQRCode(canvas, text, size){
-  return new Promise((resolve, reject) => {
-    QRCode.toCanvas(
-      canvas,
-      text,
-      {
-        width:size,
-        margin:1,
-        color:{
-          dark:"#000000",
-          light:"#ffffff"
-        },
-        errorCorrectionLevel:"M"
-      },
-      function(error){
-        if(error) reject(error);
-        else resolve(canvas);
-      }
-    );
+function generateQRToCanvas(canvas, text, size){
+  canvas.width = size;
+  canvas.height = size;
+
+  new QRious({
+    element: canvas,
+    value: text,
+    size: size,
+    level: "M",
+    background: "white",
+    foreground: "black"
   });
+
+  return canvas;
 }
 
 async function generateQR(cardId){
@@ -383,10 +376,9 @@ async function generateQR(cardId){
   const qrCanvas = document.getElementById("qrPreview");
   const verifyUrl = getVerifyUrl(cardId);
 
-  await makeQRCode(qrCanvas, verifyUrl, 220);
+  generateQRToCanvas(qrCanvas, verifyUrl, 220);
 
   qrCanvas.style.display = "block";
-  currentQRCanvas = qrCanvas;
 
 }
 
@@ -476,7 +468,7 @@ window.generateCard = async function(){
   }catch(error){
 
     console.error(error);
-    alert("Something went wrong. Please try again.");
+    alert(error.message || "Something went wrong. Please try again.");
 
   }finally{
 
@@ -536,7 +528,7 @@ window.downloadCard = async function(){
     const qrDownloadCanvas = document.createElement("canvas");
     const verifyUrl = getVerifyUrl(currentCardId);
 
-    await makeQRCode(qrDownloadCanvas, verifyUrl, 220);
+    generateQRToCanvas(qrDownloadCanvas, verifyUrl, 220);
 
     const qrSize = 150;
     const qrX = cardWidth - 55 - qrSize;
@@ -563,7 +555,7 @@ window.downloadCard = async function(){
   }catch(error){
 
     console.error(error);
-    alert("Download failed. Please try again.");
+    alert(error.message || "Download failed. Please try again.");
 
   }finally{
 
