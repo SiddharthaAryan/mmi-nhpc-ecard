@@ -66,6 +66,12 @@ font-weight:800;
 color:#d71920;
 }
 
+.small-note{
+font-size:13px;
+color:#666;
+margin-top:5px;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
@@ -99,6 +105,18 @@ font-size:13px;
 color:#555;
 margin-bottom:10px;
 }
+
+.controls{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+margin-top:10px;
+}
+
+.controls button{
+flex:1;
+min-width:160px;
+}
 </style>
 </head>
 
@@ -128,32 +146,38 @@ Logout
 
 <p>
 Total Cards Generated:
-<span class="stat" id="total">0</span>
+<span class="stat" id="total">Loading...</span>
+</p>
+
+<p class="small-note">
+Dashboard loads latest 50 records first for speed. Use Load More for older records.
 </p>
 
 <input
 id="search"
-placeholder="Search Name / Phone / ID / Date"
+placeholder="Search loaded records by Name / Phone / ID / Date"
 onkeyup="renderTable()"
 />
 
 <div class="search-info">
-You can search using:
+Search bar filters only currently loaded records.
 <br>
-• Name
-<br>
-• Phone Number
-<br>
-• Unique ID
-<br>
-• Date like: 21/05/2026
+For large-scale use: load more records, then search.
 </div>
 
-<br>
+<div class="controls">
+<button onclick="loadLatest()">
+Load Latest 50
+</button>
+
+<button onclick="loadMore()">
+Load More 50
+</button>
 
 <button onclick="exportCSV()">
-Export CSV
+Export Loaded CSV
 </button>
+</div>
 
 <table>
 <thead>
@@ -180,7 +204,10 @@ getFirestore,
 collection,
 getDocs,
 query,
-orderBy
+orderBy,
+limit,
+startAfter,
+getCountFromServer
 }
 from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
@@ -217,6 +244,8 @@ const allowedAdmins = [
 ];
 
 let rows = [];
+let lastVisible = null;
+let loading = false;
 
 window.googleLogin = async function(){
 try{
@@ -250,15 +279,35 @@ document.getElementById("loginBox").style.display = "none";
 document.getElementById("dashboard").style.display = "block";
 document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
 
-loadData();
+await loadTotalCount();
+await loadLatest();
 
 });
 
-async function loadData(){
+async function loadTotalCount(){
+
+try{
+const snapshot = await getCountFromServer(collection(db, "nhpcUsers"));
+document.getElementById("total").innerText = snapshot.data().count;
+}catch(error){
+console.error(error);
+document.getElementById("total").innerText = "Unable to load";
+}
+
+}
+
+window.loadLatest = async function(){
+
+if(loading) return;
+
+loading = true;
+
+try{
 
 const q = query(
 collection(db, "nhpcUsers"),
-orderBy("createdAt", "desc")
+orderBy("createdAt", "desc"),
+limit(50)
 );
 
 const snap = await getDocs(q);
@@ -269,9 +318,68 @@ snap.forEach(doc => {
 rows.push(doc.data());
 });
 
-document.getElementById("total").innerText = rows.length;
+lastVisible = snap.docs[snap.docs.length - 1] || null;
 
 renderTable();
+
+}catch(error){
+
+console.error(error);
+alert("Could not load latest records.");
+
+}finally{
+
+loading = false;
+
+}
+
+}
+
+window.loadMore = async function(){
+
+if(loading) return;
+
+if(!lastVisible){
+alert("No more records to load.");
+return;
+}
+
+loading = true;
+
+try{
+
+const q = query(
+collection(db, "nhpcUsers"),
+orderBy("createdAt", "desc"),
+startAfter(lastVisible),
+limit(50)
+);
+
+const snap = await getDocs(q);
+
+if(snap.empty){
+alert("No more records found.");
+return;
+}
+
+snap.forEach(doc => {
+rows.push(doc.data());
+});
+
+lastVisible = snap.docs[snap.docs.length - 1] || lastVisible;
+
+renderTable();
+
+}catch(error){
+
+console.error(error);
+alert("Could not load more records.");
+
+}finally{
+
+loading = false;
+
+}
 
 }
 
@@ -327,6 +435,14 @@ return `
 
 }).join("");
 
+if(filtered.length === 0){
+body.innerHTML = `
+<tr>
+<td colspan="4">No matching loaded records found.</td>
+</tr>
+`;
+}
+
 }
 
 window.exportCSV = function(){
@@ -349,7 +465,7 @@ const url = URL.createObjectURL(blob);
 
 const a = document.createElement("a");
 a.href = url;
-a.download = "nhpc-ecard-data.csv";
+a.download = "nhpc-ecard-loaded-data.csv";
 a.click();
 
 }
