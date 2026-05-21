@@ -75,8 +75,10 @@ Optional columns:
 
 <br><br>
 
-Bulk IDs will generate as:
-<b>NHPC-MMI-000001</b>
+Bulk IDs will continue globally as:
+<b>NHPC-MMI-000001, NHPC-MMI-000002...</b>
+<br>
+They will NOT restart from 000001 on every upload.
 </div>
 
 <input type="file" id="excelFile" accept=".xlsx,.xls">
@@ -91,7 +93,29 @@ Generate ZIP Package
 
 </div>
 
-<script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+
+import {
+getFirestore,
+doc,
+runTransaction,
+serverTimestamp
+}
+from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyCWR40lN4EFgmKttfXLIatPAzR3DnmrKH4",
+authDomain: "mmi-nhpc-ecard.firebaseapp.com",
+projectId: "mmi-nhpc-ecard",
+storageBucket: "mmi-nhpc-ecard.firebasestorage.app",
+messagingSenderId: "106508097973",
+appId: "1:106508097973:web:20c48b020c63f74d24a1fc"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 function cleanNumber(num){
 return String(num || "").replace(/\D/g,"");
@@ -126,12 +150,35 @@ return normalizedRow[cleanKey];
 return "";
 }
 
-function generateBulkId(index){
-return "NHPC-MMI-" + String(index).padStart(6,"0");
-}
-
 function getVerifyUrl(id){
 return "https://siddharthaaryan.github.io/mmi-nhpc-ecard/verify.html?id=" + encodeURIComponent(id);
+}
+
+async function getNextBulkStartingNumber(count){
+
+const counterRef = doc(db, "nhpcCounters", "bulk");
+
+return await runTransaction(db, async(transaction)=>{
+
+const counterSnap = await transaction.get(counterRef);
+
+let nextNumber = 1;
+
+if(counterSnap.exists()){
+nextNumber = Number(counterSnap.data().nextNumber || 1);
+}
+
+const startingNumber = nextNumber;
+
+transaction.set(counterRef,{
+nextNumber: nextNumber + count,
+updatedAt: serverTimestamp()
+},{merge:true});
+
+return startingNumber;
+
+});
+
 }
 
 function generateQRCanvas(text){
@@ -230,7 +277,7 @@ frontImg.src = "card-front.png";
 
 }
 
-async function processExcel(){
+window.processExcel = async function(){
 
 const fileInput = document.getElementById("excelFile");
 const status = document.getElementById("status");
@@ -332,7 +379,14 @@ return;
 }
 
 status.innerHTML =
-"Generating " + validRows.length + " E-cards...";
+"Reserving unique bulk IDs from Firebase...";
+
+const startingNumber =
+await getNextBulkStartingNumber(validRows.length);
+
+status.innerHTML =
+"Generating " + validRows.length + " E-cards..." +
+"<br>Starting ID: NHPC-MMI-" + String(startingNumber).padStart(6,"0");
 
 const zip = new JSZip();
 
@@ -346,10 +400,11 @@ for(let i=0;i<validRows.length;i++){
 const row = validRows[i];
 
 const uniqueId =
-generateBulkId(i+1);
+"NHPC-MMI-" + String(startingNumber + i).padStart(6,"0");
 
 status.innerHTML =
-"Generating Card " + (i+1) + " / " + validRows.length;
+"Generating Card " + (i+1) + " / " + validRows.length +
+"<br>Current ID: " + uniqueId;
 
 const blob =
 await createCardImage(uniqueId);
@@ -365,7 +420,8 @@ Name: row.Name,
 Number: row.Number,
 UniqueID: uniqueId,
 VerificationURL: getVerifyUrl(uniqueId),
-ECardImage: imageName
+Attachment: "E-Cards/" + imageName,
+Message: "Welcome to the MMI Narayana Health Family. Your Family Privilege Card is attached. This card covers your entire family during hospital visits."
 });
 
 }
