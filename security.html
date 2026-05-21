@@ -177,6 +177,10 @@ Load More 50
 <button onclick="exportCSV()">
 Export Loaded CSV
 </button>
+
+<button onclick="exportAllCSV()">
+Export ALL CSV
+</button>
 </div>
 
 <table>
@@ -467,6 +471,49 @@ const a = document.createElement("a");
 a.href = url;
 a.download = "nhpc-ecard-loaded-data.csv";
 a.click();
+
+}
+
+window.exportAllCSV = async function(){
+
+try{
+
+const fullQuery = query(
+collection(db, "nhpcUsers"),
+orderBy("createdAt", "desc")
+);
+
+const snap = await getDocs(fullQuery);
+
+let csv = "Name,Phone,Unique ID,Date\n";
+
+snap.forEach(doc => {
+
+const r = doc.data();
+
+const date =
+r.createdAt?.toDate
+? r.createdAt.toDate().toLocaleString()
+: "";
+
+csv += `"${r.name || ""}","${r.phone || ""}","${r.uniqueId || ""}","${date}"\n`;
+
+});
+
+const blob = new Blob([csv], {type:"text/csv"});
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "nhpc-ecard-full-database.csv";
+a.click();
+
+}catch(error){
+
+console.error(error);
+alert("Full export failed.");
+
+}
 
 }
 
