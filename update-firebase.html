@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Update Firebase - NHPC Bulk Cards</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#061b3d;
+color:white;
+padding:20px;
+}
+
+.box{
+max-width:900px;
+margin:auto;
+background:white;
+color:#111;
+padding:25px;
+border-radius:22px;
+}
+
+button,input{
+padding:14px;
+margin-top:10px;
+border-radius:10px;
+}
+
+button{
+background:#0b4ea2;
+color:white;
+border:none;
+font-weight:bold;
+cursor:pointer;
+}
+
+.status{
+margin-top:20px;
+font-weight:bold;
+line-height:1.8;
+}
+
+.note{
+background:#eef5ff;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.warning{
+background:#fff4e5;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+line-height:1.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>Update Firebase Database</h1>
+
+<div class="warning">
+Use this page ONLY after the WhatsApp E-cards have been sent.
+<br>
+Uploading here will make the QR codes VALID.
+</div>
+
+<div class="note">
+Mandatory columns:
+<b>Number</b> and <b>UniqueID</b>
+<br><br>
+Optional columns:
+<b>Name</b>, <b>VerificationURL</b>, <b>ECardImage</b>
+<br><br>
+If name or other details are missing, upload will still work.
+<br>
+QR validity depends only on:
+<b>Phone Number + Unique ID</b>
+<br><br>
+Recommended upload size:
+<b>1000–3000 rows per batch</b>
+</div>
+
+<input type="file" id="excelFile" accept=".xlsx,.xls">
+
+<br>
+
+<button onclick="uploadToFirebase()">
+Upload Sent Cards to Firebase
+</button>
+
+<div class="status" id="status"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+
+import {
+getFirestore,
+doc,
+getDoc,
+setDoc,
+serverTimestamp
+}
+from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyCWR40lN4EFgmKttfXLIatPAzR3DnmrKH4",
+authDomain: "mmi-nhpc-ecard.firebaseapp.com",
+projectId: "mmi-nhpc-ecard",
+storageBucket: "mmi-nhpc-ecard.firebasestorage.app",
+messagingSenderId: "106508097973",
+appId: "1:106508097973:web:20c48b020c63f74d24a1fc"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function cleanNumber(num){
+return String(num || "").replace(/\D/g,"");
+}
+
+function normalizeKey(key){
+return String(key || "").toLowerCase().replace(/\s+/g,"").replace(/[^a-z0-9]/g,"");
+}
+
+function getValue(row, possibleKeys){
+
+const normalizedRow = {};
+
+Object.keys(row).forEach(key=>{
+normalizedRow[normalizeKey(key)] = row[key];
+});
+
+for(const key of possibleKeys){
+
+const cleanKey = normalizeKey(key);
+
+if(
+normalizedRow[cleanKey] !== undefined &&
+normalizedRow[cleanKey] !== null &&
+normalizedRow[cleanKey] !== ""
+){
+return normalizedRow[cleanKey];
+}
+
+}
+
+return "";
+}
+
+window.uploadToFirebase = async function(){
+
+const fileInput = document.getElementById("excelFile");
+const status = document.getElementById("status");
+
+if(!fileInput.files.length){
+alert("Please upload Excel file");
+return;
+}
+
+try{
+
+status.innerHTML = "Reading Excel...";
+
+const file = fileInput.files[0];
+const data = await file.arrayBuffer();
+
+const workbook = XLSX.read(data);
+const sheet = workbook.Sheets[workbook.SheetNames[0]];
+const rows = XLSX.utils.sheet_to_json(sheet);
+
+if(rows.length === 0){
+alert("Excel is empty");
+return;
+}
+
+let uploaded = 0;
+let duplicates = 0;
+let skipped = 0;
+
+for(let i=0;i<rows.length;i++){
+
+const row = rows[i];
+
+const name =
+getValue(row, [
+"Name",
+"name",
+"Full Name",
+"Patient Name",
+"Customer Name"
+]);
+
+const rawNumber =
+getValue(row, [
+"Number",
+"number",
+"Phone",
+"phone",
+"Contact",
+"contact",
+"Mobile",
+"mobile",
+"Contact Number",
+"Phone Number",
+"Mobile Number",
+"WhatsApp Number",
+"Whatsapp Number",
+"WhatsApp",
+"Whatsapp",
+"Mob No",
+"Mob"
+]);
+
+const phone = cleanNumber(rawNumber);
+
+const uniqueId =
+getValue(row, [
+"UniqueID",
+"Unique Id",
+"Unique ID",
+"uniqueId",
+"uniqueid",
+"CardID",
+"Card ID"
+]);
+
+const verificationURL =
+getValue(row, [
+"VerificationURL",
+"Verification URL",
+"verificationURL",
+"verificationUrl"
+]);
+
+const ecardImage =
+getValue(row, [
+"ECardImage",
+"ECard Image",
+"Attachment",
+"Image",
+"File"
+]);
+
+if(!/^[0-9]{10}$/.test(phone) || !uniqueId){
+skipped++;
+continue;
+}
+
+const userRef = doc(db, "nhpcUsers", phone);
+
+const existing = await getDoc(userRef);
+
+if(existing.exists()){
+duplicates++;
+continue;
+}
+
+const uploadData = {
+phone: phone,
+uniqueId: uniqueId,
+createdAt: serverTimestamp(),
+sentAt: serverTimestamp(),
+status: "sent",
+source: "bulk",
+cardType: "NHPC-MMI"
+};
+
+if(name){
+uploadData.name = name;
+}
+
+if(verificationURL){
+uploadData.verificationURL = verificationURL;
+}
+
+if(ecardImage){
+uploadData.ecardImage = ecardImage;
+}
+
+await setDoc(userRef, uploadData);
+
+uploaded++;
+
+status.innerHTML =
+"Processing row " + (i+1) + " / " + rows.length +
+"<br>Uploaded: " + uploaded +
+"<br>Duplicates skipped: " + duplicates +
+"<br>Invalid skipped: " + skipped;
+
+}
+
+status.innerHTML =
+"Upload complete." +
+"<br>Uploaded: " + uploaded +
+"<br>Duplicates skipped: " + duplicates +
+"<br>Invalid skipped: " + skipped;
+
+}catch(error){
+
+console.error(error);
+
+status.innerHTML =
+"Error: " + (error.message || "Something went wrong");
+
+alert(error.message || "Upload failed");
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
