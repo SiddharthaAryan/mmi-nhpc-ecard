@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NHPC Bulk E-Card Generator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#061b3d;
+color:white;
+padding:20px;
+}
+
+.box{
+max-width:850px;
+margin:auto;
+background:white;
+color:#111;
+padding:25px;
+border-radius:22px;
+}
+
+button,input{
+padding:14px;
+margin-top:10px;
+border-radius:10px;
+}
+
+button{
+background:#0b4ea2;
+color:white;
+border:none;
+font-weight:bold;
+}
+
+.status{
+margin-top:20px;
+font-weight:bold;
+}
+
+.note{
+background:#eef5ff;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+line-height:1.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h1>NHPC Bulk E-Card Generator</h1>
+
+<div class="note">
+Required column: <b>Number</b> / <b>Contact</b> / <b>Phone</b> / <b>Mobile</b>
+<br>
+Optional columns: <b>Serial</b>, <b>Name</b>
+<br>
+If Name is missing, system will use: <b>MMI Family Member</b>
+</div>
+
+<input type="file" id="excelFile" accept=".xlsx,.xls">
+
+<br>
+
+<button onclick="processExcel()">Generate Output Excel</button>
+
+<div class="status" id="status"></div>
+</div>
+
+<script>
+
+function cleanNumber(num){
+return String(num || "").replace(/\D/g,"");
+}
+
+function getValue(row, possibleKeys){
+
+for(const key of possibleKeys){
+
+if(row[key] !== undefined && row[key] !== null && row[key] !== ""){
+return row[key];
+}
+
+}
+
+return "";
+}
+
+function generateBulkId(index){
+return "NHPC-MMI-" + String(index).padStart(6,"0");
+}
+
+function getVerifyUrl(id){
+return "https://siddharthaaryan.github.io/mmi-nhpc-ecard/verify.html?id=" + encodeURIComponent(id);
+}
+
+async function processExcel(){
+
+const fileInput = document.getElementById("excelFile");
+const status = document.getElementById("status");
+
+if(!fileInput.files.length){
+alert("Please upload an Excel file");
+return;
+}
+
+status.innerText = "Reading Excel...";
+
+const file = fileInput.files[0];
+const data = await file.arrayBuffer();
+
+const workbook = XLSX.read(data);
+const sheet = workbook.Sheets[workbook.SheetNames[0]];
+const rows = XLSX.utils.sheet_to_json(sheet);
+
+if(rows.length === 0){
+alert("Excel file is empty");
+return;
+}
+
+let validRows = [];
+let skippedRows = [];
+
+rows.forEach((row,index)=>{
+
+const serial =
+getValue(row, ["Serial","serial","S.No","SNO","Sr","sr"]) || index + 1;
+
+const name =
+getValue(row, ["Name","name","Full Name","full name"]) || "MMI Family Member";
+
+const rawNumber =
+getValue(row, ["Number","number","Contact","contact","Phone","phone","Mobile","mobile","WhatsApp","whatsapp"]);
+
+const number =
+cleanNumber(rawNumber);
+
+if(!/^[0-9]{10}$/.test(number)){
+
+skippedRows.push({
+Row: index + 1,
+Reason: "Invalid or missing 10-digit number",
+OriginalNumber: rawNumber || ""
+});
+
+return;
+
+}
+
+validRows.push({
+Serial: serial,
+Name: name,
+Number: number
+});
+
+});
+
+if(validRows.length === 0){
+alert("No valid 10-digit contact numbers found");
+return;
+}
+
+status.innerText =
+"Valid rows: " + validRows.length + " | Skipped rows: " + skippedRows.length;
+
+const output = validRows.map((row,index)=>{
+
+const uniqueId = generateBulkId(index + 1);
+
+return {
+Serial: row.Serial,
+Name: row.Name,
+Number: row.Number,
+UniqueID: uniqueId,
+VerificationURL: getVerifyUrl(uniqueId),
+ECard: uniqueId + ".jpg"
+};
+
+});
+
+const ws = XLSX.utils.json_to_sheet(output);
+const wb = XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(wb, ws, "Bulk E-Cards");
+
+if(skippedRows.length > 0){
+const skippedWs = XLSX.utils.json_to_sheet(skippedRows);
+XLSX.utils.book_append_sheet(wb, skippedWs, "Skipped Rows");
+}
+
+XLSX.writeFile(wb, "NHPC-Bulk-ECard-Output.xlsx");
+
+status.innerText =
+"Done. Output Excel downloaded. Valid: " + validRows.length + ", Skipped: " + skippedRows.length;
+}
+
+</script>
+
+</body>
+</html>
