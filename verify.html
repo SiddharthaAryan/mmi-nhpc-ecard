@@ -79,7 +79,8 @@ getFirestore,
 collection,
 query,
 where,
-getDocs
+getDocs,
+limit
 }
 from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
@@ -119,7 +120,8 @@ try{
 
 const q = query(
 collection(db, "nhpcUsers"),
-where("uniqueId", "==", cardId)
+where("uniqueId", "==", cardId),
+limit(1)
 );
 
 const snap = await getDocs(q);
@@ -165,7 +167,9 @@ status.innerText = "ERROR";
 status.className = "status invalid";
 
 details.innerHTML = `
-Could not verify card. Please try again.
+Could not verify card.
+<br><br>
+<strong>Error:</strong> ${error.message}
 `;
 
 }
