@@ -7,6 +7,8 @@
 <title>NHPC Bulk E-Card Generator</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
 body{
@@ -17,7 +19,7 @@ padding:20px;
 }
 
 .box{
-max-width:850px;
+max-width:900px;
 margin:auto;
 background:white;
 color:#111;
@@ -36,11 +38,13 @@ background:#0b4ea2;
 color:white;
 border:none;
 font-weight:bold;
+cursor:pointer;
 }
 
 .status{
 margin-top:20px;
 font-weight:bold;
+line-height:1.8;
 }
 
 .note{
@@ -56,23 +60,35 @@ line-height:1.6;
 <body>
 
 <div class="box">
+
 <h1>NHPC Bulk E-Card Generator</h1>
 
 <div class="note">
-Required column: <b>Number</b> / <b>Contact</b> / <b>Phone</b> / <b>Mobile</b>
-<br>
-Optional columns: <b>Serial</b>, <b>Name</b>
-<br>
-If Name is missing, system will use: <b>MMI Family Member</b>
+Required column:
+<b>Number</b>
+
+<br><br>
+
+Optional columns:
+<b>Serial</b>,
+<b>Name</b>
+
+<br><br>
+
+Bulk IDs will generate as:
+<b>NHPC-MMI-000001</b>
 </div>
 
 <input type="file" id="excelFile" accept=".xlsx,.xls">
 
 <br>
 
-<button onclick="processExcel()">Generate Output Excel</button>
+<button onclick="processExcel()">
+Generate ZIP Package
+</button>
 
 <div class="status" id="status"></div>
+
 </div>
 
 <script>
@@ -102,29 +118,113 @@ function getVerifyUrl(id){
 return "https://siddharthaaryan.github.io/mmi-nhpc-ecard/verify.html?id=" + encodeURIComponent(id);
 }
 
+function generateQRCanvas(text){
+
+const canvas = document.createElement("canvas");
+
+new QRious({
+element: canvas,
+value: text,
+size: 220,
+level: "M",
+background: "white",
+foreground: "black"
+});
+
+return canvas;
+}
+
+async function createCardImage(uniqueId){
+
+return new Promise(async(resolve)=>{
+
+const frontImg = new Image();
+
+frontImg.src = "card-front.png";
+
+frontImg.onload = async function(){
+
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+const cardWidth = 1200;
+const cardHeight = 675;
+
+canvas.width = cardWidth;
+canvas.height = cardHeight;
+
+ctx.drawImage(frontImg,0,0,cardWidth,cardHeight);
+
+ctx.font = "900 34px Arial";
+ctx.fillStyle = "white";
+ctx.textAlign = "right";
+
+ctx.fillText(
+uniqueId,
+cardWidth - 55,
+70
+);
+
+const qrCanvas =
+generateQRCanvas(getVerifyUrl(uniqueId));
+
+const qrSize = 150;
+
+const qrX = cardWidth - 55 - qrSize;
+const qrY = 92;
+
+ctx.fillStyle = "white";
+
+ctx.fillRect(
+qrX - 6,
+qrY - 6,
+qrSize + 12,
+qrSize + 12
+);
+
+ctx.drawImage(
+qrCanvas,
+qrX,
+qrY,
+qrSize,
+qrSize
+);
+
+canvas.toBlob(function(blob){
+
+resolve(blob);
+
+},"image/jpeg",0.92);
+
+};
+
+});
+
+}
+
 async function processExcel(){
 
 const fileInput = document.getElementById("excelFile");
 const status = document.getElementById("status");
 
 if(!fileInput.files.length){
-alert("Please upload an Excel file");
+alert("Please upload Excel file");
 return;
 }
 
-status.innerText = "Reading Excel...";
+status.innerHTML = "Reading Excel...";
 
 const file = fileInput.files[0];
+
 const data = await file.arrayBuffer();
 
 const workbook = XLSX.read(data);
-const sheet = workbook.Sheets[workbook.SheetNames[0]];
-const rows = XLSX.utils.sheet_to_json(sheet);
 
-if(rows.length === 0){
-alert("Excel file is empty");
-return;
-}
+const sheet =
+workbook.Sheets[workbook.SheetNames[0]];
+
+const rows =
+XLSX.utils.sheet_to_json(sheet);
 
 let validRows = [];
 let skippedRows = [];
@@ -132,13 +232,22 @@ let skippedRows = [];
 rows.forEach((row,index)=>{
 
 const serial =
-getValue(row, ["Serial","serial","S.No","SNO","Sr","sr"]) || index + 1;
+getValue(row, ["Serial","serial"]) || index + 1;
 
 const name =
-getValue(row, ["Name","name","Full Name","full name"]) || "MMI Family Member";
+getValue(row, ["Name","name"]) || "MMI Family Member";
 
 const rawNumber =
-getValue(row, ["Number","number","Contact","contact","Phone","phone","Mobile","mobile","WhatsApp","whatsapp"]);
+getValue(row, [
+"Number",
+"number",
+"Phone",
+"phone",
+"Contact",
+"contact",
+"Mobile",
+"mobile"
+]);
 
 const number =
 cleanNumber(rawNumber);
@@ -146,9 +255,9 @@ cleanNumber(rawNumber);
 if(!/^[0-9]{10}$/.test(number)){
 
 skippedRows.push({
-Row: index + 1,
-Reason: "Invalid or missing 10-digit number",
-OriginalNumber: rawNumber || ""
+Row:index+1,
+Reason:"Invalid Number",
+Original:rawNumber || ""
 });
 
 return;
@@ -156,50 +265,115 @@ return;
 }
 
 validRows.push({
-Serial: serial,
-Name: name,
-Number: number
+Serial:serial,
+Name:name,
+Number:number
 });
 
 });
 
 if(validRows.length === 0){
-alert("No valid 10-digit contact numbers found");
+alert("No valid rows found");
 return;
 }
 
-status.innerText =
-"Valid rows: " + validRows.length + " | Skipped rows: " + skippedRows.length;
+status.innerHTML =
+"Generating " + validRows.length + " E-cards...";
 
-const output = validRows.map((row,index)=>{
+const zip = new JSZip();
 
-const uniqueId = generateBulkId(index + 1);
+const imageFolder =
+zip.folder("E-Cards");
 
-return {
+const outputRows = [];
+
+for(let i=0;i<validRows.length;i++){
+
+const row = validRows[i];
+
+const uniqueId =
+generateBulkId(i+1);
+
+status.innerHTML =
+"Generating Card " + (i+1) + " / " + validRows.length;
+
+const blob =
+await createCardImage(uniqueId);
+
+const imageName =
+uniqueId + ".jpg";
+
+imageFolder.file(imageName, blob);
+
+outputRows.push({
 Serial: row.Serial,
 Name: row.Name,
 Number: row.Number,
 UniqueID: uniqueId,
 VerificationURL: getVerifyUrl(uniqueId),
-ECard: uniqueId + ".jpg"
-};
-
+ECardImage: imageName
 });
 
-const ws = XLSX.utils.json_to_sheet(output);
-const wb = XLSX.utils.book_new();
-
-XLSX.utils.book_append_sheet(wb, ws, "Bulk E-Cards");
-
-if(skippedRows.length > 0){
-const skippedWs = XLSX.utils.json_to_sheet(skippedRows);
-XLSX.utils.book_append_sheet(wb, skippedWs, "Skipped Rows");
 }
 
-XLSX.writeFile(wb, "NHPC-Bulk-ECard-Output.xlsx");
+const ws =
+XLSX.utils.json_to_sheet(outputRows);
 
-status.innerText =
-"Done. Output Excel downloaded. Valid: " + validRows.length + ", Skipped: " + skippedRows.length;
+const wb =
+XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(
+wb,
+ws,
+"Bulk E-Cards"
+);
+
+if(skippedRows.length > 0){
+
+const skippedWs =
+XLSX.utils.json_to_sheet(skippedRows);
+
+XLSX.utils.book_append_sheet(
+wb,
+skippedWs,
+"Skipped Rows"
+);
+
+}
+
+const excelBuffer =
+XLSX.write(wb,{
+bookType:'xlsx',
+type:'array'
+});
+
+zip.file(
+"NHPC-Bulk-ECard-Output.xlsx",
+excelBuffer
+);
+
+status.innerHTML =
+"Preparing ZIP download...";
+
+const content =
+await zip.generateAsync({
+type:"blob"
+});
+
+const link =
+document.createElement("a");
+
+link.href =
+URL.createObjectURL(content);
+
+link.download =
+"NHPC-Bulk-ECard-Package.zip";
+
+link.click();
+
+status.innerHTML =
+"Done. ZIP downloaded successfully.";
+
 }
 
 </script>
