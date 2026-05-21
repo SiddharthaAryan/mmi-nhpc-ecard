@@ -7,7 +7,6 @@
 <title>NHPC Admin Dashboard</title>
 
 <style>
-
 body{
 font-family:Poppins,Arial;
 background:#061b3d;
@@ -18,14 +17,12 @@ color:white;
 
 .login-box,
 .dashboard{
-
 max-width:1200px;
 margin:auto;
 background:white;
 color:#111;
 padding:25px;
 border-radius:22px;
-
 }
 
 .dashboard{
@@ -55,6 +52,12 @@ color:white;
 font-weight:700;
 cursor:pointer;
 margin-right:10px;
+margin-top:8px;
+}
+
+.logout-btn{
+background:#d71920;
+float:right;
 }
 
 .stat{
@@ -91,6 +94,11 @@ font-size:13px;
 opacity:0.7;
 }
 
+.user-info{
+font-size:13px;
+color:#555;
+margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -100,25 +108,23 @@ opacity:0.7;
 
 <h1>NHPC Secure Access</h1>
 
-<p>
-Authorized personnel only
-</p>
+<p>Authorized Gmail accounts only.</p>
 
-<input
-type="password"
-id="password"
-placeholder="Enter Access Password"
-/>
-
-<button onclick="login()">
-Access Dashboard
+<button onclick="googleLogin()">
+Sign in with Google
 </button>
 
 </div>
 
 <div class="dashboard" id="dashboard">
 
+<button class="logout-btn" onclick="logout()">
+Logout
+</button>
+
 <h1>NHPC E-Card Dashboard</h1>
+
+<div class="user-info" id="userInfo"></div>
 
 <p>
 Total Cards Generated:
@@ -140,8 +146,7 @@ You can search using:
 <br>
 • Unique ID
 <br>
-• Date like:
-21/05/2026
+• Date like: 21/05/2026
 </div>
 
 <br>
@@ -151,7 +156,6 @@ Export CSV
 </button>
 
 <table>
-
 <thead>
 <tr>
 <th>Name</th>
@@ -162,7 +166,6 @@ Export CSV
 </thead>
 
 <tbody id="tableBody"></tbody>
-
 </table>
 
 </div>
@@ -181,74 +184,87 @@ orderBy
 }
 from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
+import {
+getAuth,
+GoogleAuthProvider,
+signInWithPopup,
+signOut,
+onAuthStateChanged
+}
+from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
 const firebaseConfig = {
-
 apiKey: "AIzaSyCWR40lN4EFgmKttfXLIatPAzR3DnmrKH4",
-
 authDomain: "mmi-nhpc-ecard.firebaseapp.com",
-
 projectId: "mmi-nhpc-ecard",
-
 storageBucket: "mmi-nhpc-ecard.firebasestorage.app",
-
 messagingSenderId: "106508097973",
-
 appId: "1:106508097973:web:20c48b020c63f74d24a1fc"
-
 };
 
-const app =
-initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-const db =
-getFirestore(app);
+const allowedAdmins = [
+"aryansiddhartha03@gmail.com"
+];
 
 let rows = [];
 
-window.login = function(){
+window.googleLogin = async function(){
+try{
+await signInWithPopup(auth, provider);
+}catch(error){
+console.error(error);
+alert("Google login failed. Please try again.");
+}
+}
 
-const pass =
-document.getElementById("password").value;
+window.logout = async function(){
+await signOut(auth);
+location.reload();
+}
 
-if(pass === "SiyaRaam"){
+onAuthStateChanged(auth, async (user) => {
 
-document.getElementById("loginBox").style.display =
-"none";
+if(!user){
+document.getElementById("loginBox").style.display = "block";
+document.getElementById("dashboard").style.display = "none";
+return;
+}
 
-document.getElementById("dashboard").style.display =
-"block";
+if(!allowedAdmins.includes(user.email)){
+alert("Access denied. This Gmail is not authorized.");
+await signOut(auth);
+return;
+}
+
+document.getElementById("loginBox").style.display = "none";
+document.getElementById("dashboard").style.display = "block";
+document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
 
 loadData();
 
-}else{
-
-alert("Incorrect Password");
-
-}
-
-}
+});
 
 async function loadData(){
 
-const q =
-query(
+const q = query(
 collection(db, "nhpcUsers"),
 orderBy("createdAt", "desc")
 );
 
-const snap =
-await getDocs(q);
+const snap = await getDocs(q);
 
 rows = [];
 
 snap.forEach(doc => {
-
 rows.push(doc.data());
-
 });
 
-document.getElementById("total").innerText =
-rows.length;
+document.getElementById("total").innerText = rows.length;
 
 renderTable();
 
@@ -272,28 +288,17 @@ r.createdAt?.toDate
 ? r.createdAt.toDate().toLocaleDateString()
 : "";
 
+const fullDate =
+r.createdAt?.toDate
+? r.createdAt.toDate().toLocaleString()
+: "";
+
 return (
-
-String(r.name || "")
-.toLowerCase()
-.includes(search)
-
-||
-
-String(r.phone || "")
-.toLowerCase()
-.includes(search)
-
-||
-
-String(r.uniqueId || "")
-.toLowerCase()
-.includes(search)
-
-||
-
-date.toLowerCase().includes(search)
-
+String(r.name || "").toLowerCase().includes(search) ||
+String(r.phone || "").toLowerCase().includes(search) ||
+String(r.uniqueId || "").toLowerCase().includes(search) ||
+date.toLowerCase().includes(search) ||
+fullDate.toLowerCase().includes(search)
 );
 
 });
@@ -307,19 +312,12 @@ r.createdAt?.toDate
 : "";
 
 return `
-
 <tr>
-
 <td>${r.name || ""}</td>
-
 <td>${r.phone || ""}</td>
-
 <td>${r.uniqueId || ""}</td>
-
 <td>${date}</td>
-
 </tr>
-
 `;
 
 }).join("");
@@ -328,8 +326,7 @@ return `
 
 window.exportCSV = function(){
 
-let csv =
-"Name,Phone,Unique ID,Date\n";
+let csv = "Name,Phone,Unique ID,Date\n";
 
 rows.forEach(r => {
 
@@ -338,25 +335,16 @@ r.createdAt?.toDate
 ? r.createdAt.toDate().toLocaleString()
 : "";
 
-csv +=
-`"${r.name || ""}","${r.phone || ""}","${r.uniqueId || ""}","${date}"\n`;
+csv += `"${r.name || ""}","${r.phone || ""}","${r.uniqueId || ""}","${date}"\n`;
 
 });
 
-const blob =
-new Blob([csv], {type:"text/csv"});
+const blob = new Blob([csv], {type:"text/csv"});
+const url = URL.createObjectURL(blob);
 
-const url =
-URL.createObjectURL(blob);
-
-const a =
-document.createElement("a");
-
+const a = document.createElement("a");
 a.href = url;
-
-a.download =
-"nhpc-ecard-data.csv";
-
+a.download = "nhpc-ecard-data.csv";
 a.click();
 
 }
